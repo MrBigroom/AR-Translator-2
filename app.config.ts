@@ -11,6 +11,7 @@ const config: ExpoConfig = {
   name: 'Gift for CY',
   slug: 'gift-for-cy',
   scheme: 'giftforcy',
+  icon: './assets/icon.png',
   version: '1.0.0',
   orientation: 'portrait',
   userInterfaceStyle: 'automatic',
@@ -31,6 +32,10 @@ const config: ExpoConfig = {
   android: {
     package: 'com.giftforcy.app',
     permissions: ['android.permission.CAMERA'],
+    adaptiveIcon: {
+      foregroundImage: './assets/adaptive-icon.png',
+      backgroundColor: '#10B981',
+    },
   },
   plugins: [
     'expo-dev-client',
@@ -47,6 +52,8 @@ const config: ExpoConfig = {
       {
         // ML Kit's iOS pods (GoogleMLKit) require a modern deployment target.
         ios: { deploymentTarget: '15.5' },
+        // Keep Kotlin pinned to RN 0.76.5's version across prebuilds (Compose match).
+        android: { kotlinVersion: '1.9.24' },
       },
     ],
   ],
