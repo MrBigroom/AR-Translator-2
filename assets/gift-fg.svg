@@ -1,13 +1,13 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
   <!-- transparent background; gift centered + scaled into the Android adaptive safe zone -->
   <g transform="translate(512 512) scale(0.84) translate(-512 -518)">
-    <ellipse cx="512" cy="734" rx="205" ry="24" fill="#04231A" opacity="0.20"/>
-    <rect x="316" y="420" width="392" height="300" rx="26" fill="#F9FAFB"/>
-    <rect x="290" y="378" width="444" height="72" rx="20" fill="#FFFFFF"/>
-    <rect x="478" y="378" width="68" height="342" fill="#0B0F19"/>
-    <rect x="316" y="508" width="392" height="68" fill="#0B0F19"/>
-    <ellipse cx="442" cy="360" rx="62" ry="40" transform="rotate(-28 442 360)" fill="#0B0F19"/>
-    <ellipse cx="582" cy="360" rx="62" ry="40" transform="rotate(28 582 360)" fill="#0B0F19"/>
-    <rect x="486" y="344" width="52" height="52" rx="12" fill="#0B0F19"/>
+    <ellipse cx="512" cy="736" rx="205" ry="22" fill="#000000" opacity="0.28"/>
+    <rect x="316" y="420" width="392" height="300" rx="26" fill="#DC2626"/>
+    <rect x="290" y="378" width="444" height="72" rx="20" fill="#EF4444"/>
+    <rect x="478" y="378" width="68" height="342" fill="#FACC15"/>
+    <rect x="316" y="508" width="392" height="68" fill="#FACC15"/>
+    <ellipse cx="442" cy="360" rx="62" ry="40" transform="rotate(-28 442 360)" fill="#FACC15"/>
+    <ellipse cx="582" cy="360" rx="62" ry="40" transform="rotate(28 582 360)" fill="#FACC15"/>
+    <rect x="486" y="344" width="52" height="52" rx="12" fill="#EAB308"/>
   </g>
 </svg>
