@@ -18,6 +18,7 @@ declare module 'react-native-vision-camera-ocr-plus' {
 
   export interface UseTextRecognitionOptions {
     language?: 'latin' | 'chinese' | 'japanese' | 'korean' | 'devanagari';
+    scanRegion?: { left: string; top: string; width: string; height: string };
   }
 
   export function useTextRecognition(options?: UseTextRecognitionOptions): {

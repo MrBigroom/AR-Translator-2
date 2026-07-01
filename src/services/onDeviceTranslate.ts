@@ -1,4 +1,4 @@
-import TranslateText from '@react-native-ml-kit/translate-text';
+import TranslateText, { TranslateLanguage } from '@react-native-ml-kit/translate-text';
 
 import { LanguageCode } from '../types';
 
@@ -26,15 +26,18 @@ export async function onDeviceTranslate(
     return { translatedText: text, detectedSource: source };
   }
 
-  const result = await TranslateText.translate({
+  // The native module resolves translate() with the translated string directly
+  // (TranslateTextModule.java: `promise.resolve(translatedText)`), even though the
+  // package types the result as an empty object — so cast through unknown.
+  const translated = (await TranslateText.translate({
     text,
-    sourceLanguage: source,
-    targetLanguage: target,
+    sourceLanguage: source as TranslateLanguage,
+    targetLanguage: target as TranslateLanguage,
     downloadModelIfNeeded: true,
-  });
+  })) as unknown as string;
 
   return {
-    translatedText: result?.text ?? text,
+    translatedText: translated || text,
     detectedSource: source,
   };
 }

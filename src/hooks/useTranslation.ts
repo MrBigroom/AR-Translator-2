@@ -28,6 +28,10 @@ export function useTranslation() {
   const stabilizer = useRef(new TextStabilizer());
   // Monotonic id so stale in-flight translations can't overwrite newer results.
   const latestReq = useRef(0);
+  // Serialize translations (one at a time). ML Kit's translator creates + downloads
+  // + closes a model per call, so concurrent per-frame calls jam the downloader and
+  // hang. Only translate when nothing is in flight.
+  const inFlight = useRef(false);
 
   const cloud = useMemo(() => makeCloudTranslate(), []);
   const onlineRef = useRef(online);
@@ -45,16 +49,17 @@ export function useTranslation() {
 
   const translateNow = useCallback(
     (text: string) => {
+      if (inFlight.current) return; // serialize — avoid concurrent model downloads
+      inFlight.current = true;
       const reqId = ++latestReq.current;
       setBusy(true);
       runTranslation({ text, source, target }, engine, deps)
         .then((r) => {
-          if (reqId === latestReq.current) {
-            setResult(r);
-            setBusy(false);
-          }
+          if (reqId === latestReq.current) setResult(r);
         })
-        .catch(() => {
+        .catch(() => {})
+        .finally(() => {
+          inFlight.current = false;
           if (reqId === latestReq.current) setBusy(false);
         });
     },

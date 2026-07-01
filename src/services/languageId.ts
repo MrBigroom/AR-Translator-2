@@ -12,7 +12,7 @@ export async function detectLanguage(text: string): Promise<LanguageCode | null>
   const trimmed = text.trim();
   if (trimmed.length === 0) return null;
   try {
-    const code = await LanguageIdentification.identifyLanguage(trimmed);
+    const code = await LanguageIdentification.identify(trimmed);
     if (!code || code === 'und') return null;
     // ML Kit may return region-tagged codes (e.g. "zh-Latn"); take the base tag.
     const base = code.split('-')[0];

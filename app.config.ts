@@ -42,6 +42,13 @@ const config: ExpoConfig = {
         enableCodeScanner: false,
       },
     ],
+    [
+      'expo-build-properties',
+      {
+        // ML Kit's iOS pods (GoogleMLKit) require a modern deployment target.
+        ios: { deploymentTarget: '15.5' },
+      },
+    ],
   ],
   extra: {
     // Optional cloud translation. Prefer supplying this via an EAS secret or a

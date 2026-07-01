@@ -21,18 +21,25 @@ interface SettingsState {
   swapLanguages: () => void;
 }
 
-export const useSettingsStore = create<SettingsState>((set, get) => ({
-  source: AUTO,
-  target: DEFAULT_TARGET,
-  engine: 'on-device',
-  cloudAvailable: getCloudConfig().enabled,
+export const useSettingsStore = create<SettingsState>((set, get) => {
+  const cloud = getCloudConfig();
+  return {
+    // CY primarily reads Chinese, so default the source (and thus the OCR script)
+    // to Chinese; Japanese/Korean/etc. are one tap away in the picker.
+    source: 'zh',
+    target: DEFAULT_TARGET,
+    // Prefer cloud when a key is configured (on-device ML Kit translate is
+    // unreliable on some devices); fall back to on-device otherwise.
+    engine: cloud.enabled ? 'cloud' : 'on-device',
+    cloudAvailable: cloud.enabled,
 
-  setSource: (source) => set({ source }),
-  setTarget: (target) => set({ target }),
-  // Guard against selecting cloud when it isn't configured.
-  setEngine: (engine) =>
-    set({ engine: engine === 'cloud' && !get().cloudAvailable ? 'on-device' : engine }),
-  // Swapping only makes sense when the source is a concrete language, not "auto".
-  swapLanguages: () =>
-    set((s) => (s.source === AUTO ? s : { source: s.target, target: s.source })),
-}));
+    setSource: (source) => set({ source }),
+    setTarget: (target) => set({ target }),
+    // Guard against selecting cloud when it isn't configured.
+    setEngine: (engine) =>
+      set({ engine: engine === 'cloud' && !get().cloudAvailable ? 'on-device' : engine }),
+    // Swapping only makes sense when the source is a concrete language, not "auto".
+    swapLanguages: () =>
+      set((s) => (s.source === AUTO ? s : { source: s.target, target: s.source })),
+  };
+});
