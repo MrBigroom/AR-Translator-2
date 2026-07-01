@@ -34,7 +34,7 @@ const config: ExpoConfig = {
     permissions: ['android.permission.CAMERA'],
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#10B981',
+      backgroundColor: '#0B0F19',
     },
   },
   plugins: [
