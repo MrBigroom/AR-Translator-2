@@ -1,4 +1,4 @@
-# Putting "Translator App for CY" on your iPhone 🎁
+# Putting "Gift for CY" on your iPhone 🎁
 
 This app reads Chinese / Japanese / Korean text through your camera and translates
 it live. Because Apple requires a Mac to build iPhone apps, you'll build it once on
@@ -53,7 +53,7 @@ printf 'GIFT_CLOUD_TRANSLATE_API_KEY=AIza...THEKEY\nGIFT_CLOUD_TRANSLATE_PROVIDE
 7. On the iPhone, if it says *"Untrusted Developer"*: **Settings → General → VPN &
    Device Management → tap your Apple ID → Trust**.
 
-8. Open **Translator App for CY**, allow the camera, and point it at some text. 🎉
+8. Open **Gift for CY**, allow the camera, and point it at some text. 🎉
    Tap the language chip (bottom-left) to switch Chinese / Japanese / Korean; drag
    or resize the green box to aim it at the text you want.
 

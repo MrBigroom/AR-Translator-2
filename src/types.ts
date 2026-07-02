@@ -1,4 +1,4 @@
-/** Shared domain types for Translator App for CY. */
+/** Shared domain types for Gift for CY. */
 
 /** A BCP-47-ish language code as used by ML Kit (e.g. "en", "zh", "es"). */
 export type LanguageCode = string;

@@ -39,7 +39,7 @@ export function TranslatorScreen() {
         />
 
         <View style={[styles.topBar, { top: insets.top + spacing.sm }]}>
-          <Text style={styles.brand}>Translator App for CY</Text>
+          <Text style={styles.brand}>Gift for CY</Text>
           <Pressable
             style={styles.gear}
             onPress={() => setSettingsOpen(true)}
