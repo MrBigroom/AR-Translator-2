@@ -64,7 +64,7 @@ export function SettingsScreen({ visible, onClose }: Props) {
             personal use, route requests through a serverless proxy (see README).
           </Text>
 
-          <Text style={styles.appName}>Gift for CY</Text>
+          <Text style={styles.appName}>Translator App for CY</Text>
         </ScrollView>
 
         <LanguageSelector

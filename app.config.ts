@@ -1,14 +1,14 @@
 import { ExpoConfig } from 'expo/config';
 
 /**
- * Expo app configuration for "Gift for CY".
+ * Expo app configuration for "Translator App for CY".
  *
  * The vision-camera config plugin injects the native camera permission wiring;
  * we also declare the human-readable permission strings so the OS prompt makes
  * sense to the user.
  */
 const config: ExpoConfig = {
-  name: 'Gift for CY',
+  name: 'Translator App for CY',
   slug: 'gift-for-cy',
   scheme: 'giftforcy',
   icon: './assets/icon.png',
@@ -26,7 +26,7 @@ const config: ExpoConfig = {
     bundleIdentifier: 'com.giftforcy.app',
     infoPlist: {
       NSCameraUsageDescription:
-        'Gift for CY uses the camera to read and translate text in real time.',
+        'Translator App for CY uses the camera to read and translate text in real time.',
     },
   },
   android: {
@@ -43,7 +43,7 @@ const config: ExpoConfig = {
       'react-native-vision-camera',
       {
         cameraPermissionText:
-          'Gift for CY needs camera access to read and translate text in real time.',
+          'Translator App for CY needs camera access to read and translate text in real time.',
         enableCodeScanner: false,
       },
     ],
