@@ -4,7 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { TranslatorScreen } from './screens/TranslatorScreen';
 
-/** Root component for Translator App for CY. */
+/** Root component for Gift for CY. */
 export default function App() {
   return (
     <SafeAreaProvider>

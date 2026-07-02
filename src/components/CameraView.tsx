@@ -200,7 +200,7 @@ export function CameraView({
       <View style={styles.fallback}>
         <Text style={styles.fallbackTitle}>Camera access needed</Text>
         <Text style={styles.fallbackText}>
-          Translator App for CY reads and translates text from the camera. Grant access to continue.
+          Gift for CY reads and translates text from the camera. Grant access to continue.
         </Text>
         <Pressable style={styles.button} onPress={requestPermission}>
           <Text style={styles.buttonText}>Grant camera access</Text>
