@@ -1,4 +1,4 @@
-/** Central design tokens for Gift for CY (dark, camera-friendly palette). */
+/** Central design tokens for Translator App for CY (dark, camera-friendly palette). */
 export const colors = {
   background: '#0B0F19',
   panel: '#121826',

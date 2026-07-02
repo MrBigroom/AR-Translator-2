@@ -1,4 +1,4 @@
-# Gift for CY
+# Translator App for CY
 
 A cross-platform (iOS + Android) **real-time AR translator**. Point the camera at
 text and it is recognized and translated continuously from the live stream — no
@@ -40,7 +40,7 @@ so we don't re-translate identical frames or flicker on OCR jitter.
 ## Project layout
 
 ```
-app.config.ts        # "Gift for CY" app config, camera perms, vision-camera plugin
+app.config.ts        # "Translator App for CY" app config, camera perms, vision-camera plugin
 eas.json             # EAS build profiles (development / preview / production)
 babel.config.js      # worklets plugin (required by the frame processor)
 src/
