@@ -14,6 +14,10 @@ import { useOnlineStatus } from './useOnlineStatus';
  * the stabilizer (so we only translate on meaningful change), then translated by
  * the hybrid engine. `result` holds the latest translation, `busy` is true while
  * a translation is in flight, and `paused` freezes the panel on the current text.
+ *
+ * `captureTranslate` is the one-shot path for the "Read handwriting" button: it
+ * translates a specific string (from Cloud Vision OCR) directly, bypassing the
+ * stabilizer and the pause gate, and freezes the panel on it.
  */
 export function useTranslation() {
   const source = useSettingsStore((s) => s.source);
@@ -32,6 +36,8 @@ export function useTranslation() {
   // + closes a model per call, so concurrent per-frame calls jam the downloader and
   // hang. Only translate when nothing is in flight.
   const inFlight = useRef(false);
+  // The last text we translated (live or captured); re-run on setting change.
+  const lastTextRef = useRef('');
 
   const cloud = useMemo(() => makeCloudTranslate(), []);
   const onlineRef = useRef(online);
@@ -47,11 +53,11 @@ export function useTranslation() {
     [cloud],
   );
 
-  const translateNow = useCallback(
+  // Low-level translate: always runs; clears the in-flight guard when it settles.
+  const doTranslate = useCallback(
     (text: string) => {
-      if (inFlight.current) return; // serialize — avoid concurrent model downloads
-      inFlight.current = true;
       const reqId = ++latestReq.current;
+      lastTextRef.current = text;
       setBusy(true);
       runTranslation({ text, source, target }, engine, deps)
         .then((r) => {
@@ -66,6 +72,16 @@ export function useTranslation() {
     [source, target, engine, deps],
   );
 
+  // Live path: serialize so per-frame OCR can't launch concurrent translations.
+  const translateNow = useCallback(
+    (text: string) => {
+      if (inFlight.current) return;
+      inFlight.current = true;
+      doTranslate(text);
+    },
+    [doTranslate],
+  );
+
   const submit = useCallback(
     (raw: string) => {
       if (paused) return;
@@ -76,22 +92,37 @@ export function useTranslation() {
     [paused, translateNow],
   );
 
+  // One-shot capture (e.g. Cloud Vision handwriting OCR): translate the given text
+  // directly, bypassing the stabilizer + pause gate, and freeze the panel on it.
+  const captureTranslate = useCallback(
+    (text: string) => {
+      const t = text.trim();
+      if (!t) return;
+      setPaused(true);
+      stabilizer.current.reset();
+      inFlight.current = true; // keep frame translations from racing this one
+      doTranslate(t);
+    },
+    [doTranslate],
+  );
+
   // When the user changes source/target/engine, re-translate the current text so
   // the panel updates without needing the camera to see something new.
   useEffect(() => {
-    const current = stabilizer.current.current;
-    if (current) translateNow(current);
+    if (lastTextRef.current) translateNow(lastTextRef.current);
     // translateNow already depends on source/target/engine.
   }, [translateNow]);
 
   const togglePause = useCallback(() => setPaused((p) => !p), []);
+  const pause = useCallback(() => setPaused(true), []);
 
   const clear = useCallback(() => {
     stabilizer.current.reset();
+    lastTextRef.current = '';
     latestReq.current += 1;
     setResult(null);
     setBusy(false);
   }, []);
 
-  return { result, busy, paused, submit, togglePause, clear };
+  return { result, busy, paused, submit, captureTranslate, togglePause, pause, clear };
 }

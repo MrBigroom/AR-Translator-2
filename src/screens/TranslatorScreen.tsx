@@ -8,6 +8,7 @@ import { SettingsScreen } from './SettingsScreen';
 import { useTranslation } from '../hooks/useTranslation';
 import { useSettingsStore } from '../store/settingsStore';
 import { ocrScriptForSource } from '../hooks/useFrameOcr';
+import { AUTO } from '../types';
 import { CAMERA_FLEX, PANEL_FLEX, colors, radius, spacing } from '../theme';
 
 /**
@@ -16,17 +17,26 @@ import { CAMERA_FLEX, PANEL_FLEX, colors, radius, spacing } from '../theme';
  */
 export function TranslatorScreen() {
   const insets = useSafeAreaInsets();
-  const { result, busy, paused, submit, togglePause } = useTranslation();
+  const { result, busy, paused, submit, togglePause, captureTranslate, pause } = useTranslation();
   const [settingsOpen, setSettingsOpen] = useState(false);
   // ML Kit OCR is script-based, so the chosen source language selects the model.
   const source = useSettingsStore((s) => s.source);
   const ocrScript = ocrScriptForSource(source);
+  // Cloud Vision language hint: the concrete source language (undefined for auto).
+  const visionHint = source === AUTO ? undefined : source;
 
   return (
     <View style={styles.root}>
       <View style={[styles.camera, { flex: CAMERA_FLEX }]}>
         {/* OCR stays active unless the panel is frozen. */}
-        <CameraView onText={submit} active={!paused} script={ocrScript} />
+        <CameraView
+          onText={submit}
+          active={!paused}
+          script={ocrScript}
+          onCaptureStart={pause}
+          onCaptureText={captureTranslate}
+          sourceHint={visionHint}
+        />
 
         <View style={[styles.topBar, { top: insets.top + spacing.sm }]}>
           <Text style={styles.brand}>Gift for CY</Text>

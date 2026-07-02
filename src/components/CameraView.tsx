@@ -1,12 +1,14 @@
-import React, { useMemo, useRef, useState } from 'react';
-import { PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   Camera,
   useCameraDevice,
   useCameraPermission,
 } from 'react-native-vision-camera';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 
 import { useFrameOcr, OcrScript } from '../hooks/useFrameOcr';
+import { makeCloudVisionOcr } from '../services/cloudVision';
 import { colors, radius, spacing } from '../theme';
 
 interface Props {
@@ -15,6 +17,12 @@ interface Props {
   /** When false, OCR is skipped (e.g. panel frozen) but the preview stays live. */
   active: boolean;
   script?: OcrScript;
+  /** Fired when a handwriting capture begins (parent freezes the live panel). */
+  onCaptureStart?: () => void;
+  /** Called with the Cloud Vision OCR text from a handwriting capture. */
+  onCaptureText?: (text: string) => void;
+  /** Concrete source language code (e.g. "zh") used as a Cloud Vision hint. */
+  sourceHint?: string;
 }
 
 /** Scan box position/size as percentages of the camera view. */
@@ -69,10 +77,25 @@ function applyGesture(mode: GestureMode, s: Region, dx: number, dy: number): Reg
  * scan box you can DRAG (body) and RESIZE (corner grips). OCR only reads text
  * inside the box. The corner grips are siblings of the box (rendered on top) so a
  * touch on a corner resizes, while a touch elsewhere on the box moves it.
+ *
+ * A "Read handwriting" button captures a full-frame photo and runs it through
+ * Cloud Vision OCR (much better on handwriting than the live ML Kit recognizer),
+ * then hands the recognized text to the translation panel.
  */
-export function CameraView({ onText, active, script }: Props) {
+export function CameraView({
+  onText,
+  active,
+  script,
+  onCaptureStart,
+  onCaptureText,
+  sourceHint,
+}: Props) {
   const { hasPermission, requestPermission } = useCameraPermission();
   const device = useCameraDevice('back');
+  const cameraRef = useRef<Camera>(null);
+  const visionOcr = useMemo(() => makeCloudVisionOcr(), []);
+  const [capturing, setCapturing] = useState(false);
+  const [captureError, setCaptureError] = useState<string | null>(null);
 
   // `region` is the live box; `committed` is what OCR reads — updated only when a
   // gesture ends, so the OCR plugin isn't rebuilt on every gesture frame.
@@ -119,6 +142,33 @@ export function CameraView({ onText, active, script }: Props) {
 
   const frameProcessor = useFrameOcr(onText, active, script, scanRegion);
 
+  const onCapture = useCallback(async () => {
+    if (capturing || visionOcr == null || cameraRef.current == null) return;
+    setCaptureError(null);
+    setCapturing(true);
+    onCaptureStart?.();
+    try {
+      const photo = await cameraRef.current.takePhoto();
+      const uri = photo.path.startsWith('file://') ? photo.path : `file://${photo.path}`;
+      // Downscale for a fast upload; base64 for the Vision request.
+      const shot = await manipulateAsync(uri, [{ resize: { width: 1500 } }], {
+        base64: true,
+        compress: 0.85,
+        format: SaveFormat.JPEG,
+      });
+      const text = await visionOcr(shot.base64 ?? '', sourceHint ? [sourceHint] : undefined);
+      if (text) {
+        onCaptureText?.(text);
+      } else {
+        setCaptureError('No text found — aim at the writing and try again.');
+      }
+    } catch {
+      setCaptureError('Couldn’t read that. Check your connection and try again.');
+    } finally {
+      setCapturing(false);
+    }
+  }, [capturing, visionOcr, onCaptureStart, onCaptureText, sourceHint]);
+
   if (!hasPermission) {
     return (
       <View style={styles.fallback}>
@@ -156,9 +206,11 @@ export function CameraView({ onText, active, script }: Props) {
       }}
     >
       <Camera
+        ref={cameraRef}
         style={StyleSheet.absoluteFill}
         device={device}
         isActive={true}
+        photo={true}
         frameProcessor={frameProcessor}
       />
 
@@ -195,6 +247,35 @@ export function CameraView({ onText, active, script }: Props) {
       <View {...pans.br.panHandlers} style={[styles.handle, { left: `${cx}%`, top: `${cy}%` }]}>
         <View style={styles.grip} />
       </View>
+
+      {/* Handwriting capture: full-frame photo -> Cloud Vision OCR -> translate. */}
+      {visionOcr != null && (
+        <View style={styles.captureBar} pointerEvents="box-none">
+          {captureError != null && (
+            <View style={styles.errPill}>
+              <Text style={styles.errText}>{captureError}</Text>
+            </View>
+          )}
+          <Pressable
+            style={[styles.captureBtn, capturing && styles.captureBtnBusy]}
+            onPress={onCapture}
+            disabled={capturing}
+          >
+            {capturing ? (
+              <ActivityIndicator color={colors.background} />
+            ) : (
+              <Text style={styles.captureText}>✎  Read handwriting</Text>
+            )}
+          </Pressable>
+        </View>
+      )}
+
+      {capturing && (
+        <View style={styles.capturingOverlay} pointerEvents="none">
+          <ActivityIndicator color={colors.accent} size="large" />
+          <Text style={styles.capturingText}>Reading…</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -237,6 +318,41 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   dragText: { color: colors.text, fontSize: 12, fontWeight: '700' },
+  captureBar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: spacing.lg,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  captureBtn: {
+    backgroundColor: colors.accent,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.md,
+    borderRadius: radius.pill,
+    minWidth: 210,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  captureBtnBusy: { opacity: 0.85 },
+  captureText: { color: colors.background, fontSize: 15, fontWeight: '800' },
+  errPill: {
+    backgroundColor: colors.overlay,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.pill,
+    maxWidth: '90%',
+  },
+  errText: { color: colors.text, fontSize: 12, fontWeight: '600', textAlign: 'center' },
+  capturingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(11,15,25,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  capturingText: { color: colors.text, fontSize: 15, fontWeight: '700' },
   fallback: {
     flex: 1,
     backgroundColor: colors.background,
