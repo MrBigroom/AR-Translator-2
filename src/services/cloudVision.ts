@@ -34,14 +34,22 @@ async function googleVisionOcr(
     request.imageContext = { languageHints };
   }
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ requests: [request] }),
-  });
-  if (!res.ok) throw new Error(`Cloud Vision HTTP ${res.status}`);
-  const json = await res.json();
-  const r = json?.responses?.[0];
-  if (r?.error?.message) throw new Error(`Cloud Vision: ${r.error.message}`);
-  return String(r?.fullTextAnnotation?.text ?? '').trim();
+  // Abort a stalled request so the UI can't spin forever on a flaky network.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 25000);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests: [request] }),
+      signal: controller.signal,
+    });
+    if (!res.ok) throw new Error(`Cloud Vision HTTP ${res.status}`);
+    const json = await res.json();
+    const r = json?.responses?.[0];
+    if (r?.error?.message) throw new Error(`Cloud Vision: ${r.error.message}`);
+    return String(r?.fullTextAnnotation?.text ?? '').trim();
+  } finally {
+    clearTimeout(timer);
+  }
 }

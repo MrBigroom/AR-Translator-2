@@ -5,7 +5,7 @@ import {
   useCameraDevice,
   useCameraPermission,
 } from 'react-native-vision-camera';
-import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import { manipulateAsync, SaveFormat, Action } from 'expo-image-manipulator';
 
 import { useFrameOcr, OcrScript } from '../hooks/useFrameOcr';
 import { makeCloudVisionOcr } from '../services/cloudVision';
@@ -142,6 +142,37 @@ export function CameraView({
 
   const frameProcessor = useFrameOcr(onText, active, script, scanRegion);
 
+  // Crop the captured photo to the on-screen scan box, mapping the box's
+  // percentage rect through the preview's "cover" scaling into image pixels.
+  // Reading only the framed region keeps out background text and gives the
+  // handwriting more pixels (sharper OCR).
+  const cropToScanBox = useCallback(async (uri: string): Promise<string> => {
+    // Normalize orientation + cap size; the result's width/height are upright.
+    const norm = await manipulateAsync(uri, [{ resize: { width: 3000 } }], {
+      compress: 1,
+      format: SaveFormat.JPEG,
+    });
+    const { w: Wp, h: Hp } = layoutRef.current;
+    const Wi = norm.width;
+    const Hi = norm.height;
+    const box = regionRef.current;
+    const scale = Math.max(Wp / Wi, Hp / Hi); // preview uses resizeMode "cover"
+    const offX = (Wi * scale - Wp) / 2;
+    const offY = (Hi * scale - Hp) / 2;
+    const originX = clamp(((box.left / 100) * Wp + offX) / scale, 0, Wi - 1);
+    const originY = clamp(((box.top / 100) * Hp + offY) / scale, 0, Hi - 1);
+    const width = clamp(((box.width / 100) * Wp) / scale, 1, Wi - originX);
+    const height = clamp(((box.height / 100) * Hp) / scale, 1, Hi - originY);
+    const actions: Action[] = [{ crop: { originX, originY, width, height } }];
+    if (width > 1600) actions.push({ resize: { width: 1600 } }); // don't upscale small crops
+    const cropped = await manipulateAsync(norm.uri, actions, {
+      base64: true,
+      compress: 0.9,
+      format: SaveFormat.JPEG,
+    });
+    return cropped.base64 ?? '';
+  }, []);
+
   const onCapture = useCallback(async () => {
     if (capturing || visionOcr == null || cameraRef.current == null) return;
     setCaptureError(null);
@@ -150,24 +181,19 @@ export function CameraView({
     try {
       const photo = await cameraRef.current.takePhoto();
       const uri = photo.path.startsWith('file://') ? photo.path : `file://${photo.path}`;
-      // Downscale for a fast upload; base64 for the Vision request.
-      const shot = await manipulateAsync(uri, [{ resize: { width: 1500 } }], {
-        base64: true,
-        compress: 0.85,
-        format: SaveFormat.JPEG,
-      });
-      const text = await visionOcr(shot.base64 ?? '', sourceHint ? [sourceHint] : undefined);
+      const base64 = await cropToScanBox(uri);
+      const text = await visionOcr(base64, sourceHint ? [sourceHint] : undefined);
       if (text) {
         onCaptureText?.(text);
       } else {
-        setCaptureError('No text found — aim at the writing and try again.');
+        setCaptureError('No text found — aim the box at the writing and try again.');
       }
     } catch {
       setCaptureError('Couldn’t read that. Check your connection and try again.');
     } finally {
       setCapturing(false);
     }
-  }, [capturing, visionOcr, onCaptureStart, onCaptureText, sourceHint]);
+  }, [capturing, visionOcr, cropToScanBox, onCaptureStart, onCaptureText, sourceHint]);
 
   if (!hasPermission) {
     return (
